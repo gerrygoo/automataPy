@@ -2,7 +2,7 @@ from collections import defaultdict
 
 class Automata:
 
-    def __init__(self, delta=None, Q=[], sigma = None, F = None):
+    def __init__(self, Q=[], sigma = None, delta=None, q_0=None, F = None):
         self.Q = set(Q)
         self.sigma = sigma
         self.delta = defaultdict(lambda : None) if not delta else delta
