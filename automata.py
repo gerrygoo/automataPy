@@ -4,7 +4,7 @@ import xmltodict
 class State:
     last_id = 0
 
-    def __init__(self, name='', initial=False, final=False, id=-1, transitions={}):
+    def __init__(self, name='', initial=False, final=False, id=-1, transitions=None):
         if id == -1:
             self.id = State.last_id
             State.last_id += 1
@@ -13,7 +13,7 @@ class State:
         self.name = 'q{}'.format(self.id) if name == '' else name
         self.initial = initial
         self.final = final
-        self.transitions = transitions
+        self.transitions = transitions if transitions != None else {}
 
     def addTransition(self, read, to):
         self.transitions[read] = to
@@ -24,18 +24,25 @@ class State:
             res['initial'] = None
         if self.final:
             res['final'] = None
+        return res
 
     def transitionList(self):
         return [{'from': self.id, 'to': self.transitions[transition].id, 'read': transition} for transition in self.transitions]
 
     def __hash__(self):
-        return self.id.__hash__()
+        return hash(self.id)
 
     def __lt__(self, other):
         return self.id < other.id
 
     def __eq__(self, other):
         return self.id == other.id
+
+    def __str__(self):
+        return "\nid: {}\nname:{}\ninitial: {}\nfinal: {}\ntransitions: [\n\t{}\n]".format(self.id, self.name, self.initial, self.final,
+                                                                                  "\n\t".join(["to: {}, read: {}".format(self.transitions[x].id, x) for x in self.transitions]))
+
+    __repr__ = __str__
 
 
 class Automaton:
@@ -71,12 +78,12 @@ class Automaton:
         except OSError:
             print("The file: '{}' couln't be opened or created".format(filename))
 
-    def __init__(self, states=[], initial=None):
+    def __init__(self, states={}, initial=None):
         self.states = states
         self.initial = initial
 
     def add_state(self, new_state):
-        self.states[new_state.id] = new_state
+        self.states[new_state] = new_state
 
     def add_transition(self, from_state, with_value, to_state):
         self.states[from_state].addTransition(with_value, to_state)
