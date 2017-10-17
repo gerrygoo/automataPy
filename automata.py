@@ -4,13 +4,13 @@ import xmltodict
 class State:
     last_id = 0
 
-    def __init__(self, name='', initial=False, final=False, id=-1, transitions=None):
+    def __init__(self, name=None, initial=False, final=False, id=-1, transitions=None):
         if id == -1:
             self.id = State.last_id
             State.last_id += 1
         else:
             self.id = int(id)
-        self.name = 'q{}'.format(self.id) if name == '' else name
+        self.name = 'q{}'.format(self.id) if name == None else name
         self.initial = initial
         self.final = final
         self.transitions = transitions if transitions != None else {}
