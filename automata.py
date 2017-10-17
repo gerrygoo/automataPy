@@ -1,5 +1,42 @@
 from collections import defaultdict
 
+class State:
+    last_id = 0
+
+    def __init__(self, name='', initial=False, final=False, id=-1):
+        if id == -1:
+            self.id = State.last_id
+            State.last_id += 1
+        else:
+            self.id = id
+        self.name = 'q{}'.format(self.id) if name == '' else name
+        self.initial = initial
+        self.final = final
+
+    def __hash__(self):
+        return self.id.__hash__()
+
+    def __lt__(self, other):
+        return self.id < other.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+
+class Transition:
+
+    def __init__(self, _from, to, read):
+        self._from = _from
+        self.to = to
+        self.read = read
+
+    def __eq__(self, other):
+        return self._from == other._from and self.to == other.to and self.read == other.read
+
+    def __hash__(self):
+        return hash((self.to+self._from+self.read))
+
+
 class Automata:
 
     def __init__(self, Q=[], sigma=[], delta={}, q_0=None, F = []):
@@ -16,11 +53,6 @@ class Automata:
     
     def add_transition(self, from_state, with_value, to_state):
             self.delta[from_state][with_value].add(to_state)
-
-
-
-
-
 
     def dfa_transform(self):
         def p(s):
