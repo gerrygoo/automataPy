@@ -1,102 +1,85 @@
 from collections import defaultdict
-
-class State:
-    last_id = 0
-
-    def __init__(self, name='', initial=False, final=False, id=-1):
-        if id == -1:
-            self.id = State.last_id
-            State.last_id += 1
-        else:
-            self.id = id
-        self.name = 'q{}'.format(self.id) if name == '' else name
-        self.initial = initial
-        self.final = final
-
-    def __hash__(self):
-        return self.id.__hash__()
-
-    def __lt__(self, other):
-        return self.id < other.id
-
-    def __eq__(self, other):
-        return self.id == other.id
-
-
-class Transition:
-
-    def __init__(self, _from, to, read):
-        self._from = _from
-        self.to = to
-        self.read = read
-
-    def __eq__(self, other):
-        return self._from == other._from and self.to == other.to and self.read == other.read
-
-    def __hash__(self):
-        return hash((self.to+self._from+self.read))
-
+import xml.etree.ElementTree as ET
 
 class Automata:
 
-    def __init__(self, Q=[], sigma=[], delta={}, q_0=None, F = []):
-        self.Q = set(Q)
-        self.sigma = set(sigma)
-        self.delta = defaultdict(None, delta)
+    def __init__(self, Q=set(), sigma=set(), delta=defaultdict(lambda : None), q_0=None, F = set()):
+        self.Q = Q
+        self.sigma = sigma
+        self.delta = delta
         self.q_0 = q_0
-        self.F = set(F)
+        self.F = F
         
 
     def add_state(self, new_state):
         self.Q.add(new_state)
-        self.delta[new_state] = defaultdict(set)
+        self.delta[new_state] = defaultdict(lambda : None)
     
     def add_transition(self, from_state, with_value, to_state):
-            self.delta[from_state][with_value].add(to_state)
+        self.sigma.add(with_value)
+        self.delta[from_state][with_value] = to_state 
 
-    def dfa_transform(self):
-        def p(s):
-            result = [[]]
-            for elem in s:
-                result.extend([x + [elem] for x in result])
-            return result
+    def set_initial_state(self, state):
+        self.Q.add(state)
+        self.q_0 = state
 
-        deterministic = {
-            'Q':p(self.Q), 
-            'sigma':self.sigma,
-            'delta':None,
-            'q_0':self.q_0,
-            'F':None
-        }
-
-        # determinisic sigma
-        delta = {} #from state in P(Q):list to set of states given a key
-        # delta[from_tuple][key] = to_set
-
-        for state_list in deterministic['Q'][1:]: 
-            delta[tuple(state_list)] = {}
-
-            for key in self.sigma:
-                to_set = set()
-
-                for ind_state in state_list:
-                    to_set |= self.delta[ind_state][key]
-
-                delta[tuple(state_list)][key] = to_set
-            
-
-        deterministic['delta'] = delta
-
-        # deterministic F
-        F = []
-        for state_list in deterministic['Q']: 
-            for ac in self.F:
-                if ac in state_list:
-                    F.append(state_list)
-                    break
-                
-        deterministic['F'] = F
-        return deterministic
-
-
+    def add_final_state(self, state):
+        self.Q.add(state)
+        self.F.add(state)
     
+
+    def to_JFlap(self, filename = 'output.jff'):
+        struc = ET.Element('structure')
+        document = ET.ElementTree(struc)
+        ET.SubElement(struc, 'type').text = 'fa'
+        autom = ET.SubElement(struc,'automaton')
+
+        for state in sorted(self.Q):
+            stateElem = ET.SubElement(autom, 'state')
+            stateElem.set('id', state)
+            stateElem.set('name', 'q'+state)
+
+            ET.SubElement(stateElem,'x').text = '10.0'
+            ET.SubElement(stateElem,'y').text = '10.0'
+            
+            if(state == self.q_0):
+                ET.SubElement(stateElem,'initial')
+            if(state in self.F):
+                ET.SubElement(stateElem,'final')
+        
+        for state in self.Q:
+            if(state in self.delta):
+                for with_value in self.delta[state]:
+                    transElem = ET.SubElement(autom,'transition')
+                    ET.SubElement(transElem,'from').text = state
+                    ET.SubElement(transElem,'to').text = self.delta[state][with_value]
+                    ET.SubElement(transElem,'read').text = with_value
+
+        document.write(filename, xml_declaration=True,encoding='UTF-8')
+
+    @staticmethod
+    def from_JFlap(filename):
+
+        autom = Automata()
+
+        #parse the XML
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        
+        for state in root.iter('state'):
+            autom.add_state(state.get('id'))
+            if(state.find('final') != None):
+                autom.add_final_state(state.get('id'))
+            if(state.find('initial') != None):
+                autom.set_initial_state(state.get('id'))
+
+        for transition in root.iter('transition'):
+            autom.add_transition(transition.find('from').text,transition.find('read').text,transition.find('to').text)
+
+        return autom
+
+def main():
+    a = Automata.from_JFlap('tarea_5_DFA.jff')
+    a.to_JFlap()
+    
+main()
