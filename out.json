@@ -1,0 +1,5 @@
+defaultdict(None,
+            {0: defaultdict(<class 'set'>, {0: {0}, 1: {0, 1}}),
+             1: defaultdict(<class 'set'>, {0: {2}, 1: {2}}),
+             2: defaultdict(<class 'set'>, {0: {3}}),
+             3: defaultdict(<class 'set'>, {0: {3}, 1: {3}})})
