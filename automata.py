@@ -100,17 +100,13 @@ class Automaton:
     def toLatex(self):
         result = StringIO()
 
-        def underscore(st):
+        def escape(st):
+            st = str(st)
+            st = re.sub(r'([\{\}])', r'\\\1', st)
             return re.sub(r'(?<=\w)(\d+)', r'_{\1}', st)
 
-        def myJoin(st, col, val, isSet=False):
-            if isSet:
-                return st.join(['\\{' + val(x) + '\\}' for x in col])
-            return st.join([val(x) for x in col])
-
         result.write('\\begin{enumerate}\n')
-        qst = underscore(
-            myJoin(', ', self.states.values(), lambda s: str(s.name), self.from_nfa))
+        qst = ', '.join([escape(x.name) for x in self.states.values()])
         ident = '  '
         result.write(ident + '\\item $Q = \\{' + qst + '\\}$\n')
         reads = set()
@@ -121,9 +117,9 @@ class Automaton:
         stt = ", ".join([str(x) for x in reads])
         result.write(ident + '\\item $\\Sigma = \\{' + stt + '\\}$\n')
         result.write(ident + '\\item $q_0$ = $' +
-                     underscore(self.initial.name) + ' \\in Q$\n')
-        fst = myJoin(', ', [x for x in self.states.values() if x.final],
-                     lambda s: underscore(s.name), self.from_nfa)
+                     escape(self.initial.name) + ' \\in Q$\n')
+        fst = ', '.join([escape(s.name)
+                         for s in self.states.values() if s.final])
         result.write(ident + '\\item $F = \\{' + fst + '\\}$\n')
         result.write(
             ident + '\\item $\\delta \\colon Q \\times \\Sigma \\rightarrow Q = $\n')
@@ -136,32 +132,37 @@ class Automaton:
         ordered_states = []
 
         def number_on_string(a):
-            n = re.sub(r'\D+', '', a.name)
-            return int(n) if n != '' else 0
+            n = re.sub(r'\D+', '', a)
+            return int(n) if n != '' else -1
 
-        if self.from_nfa:
-            ordered_states = sorted(
-                self.states.values(), key=lambda a: a.name.count(','))
-        elif re.search(r'(\d+)', self.states[0].name):
-            ordered_states = sorted(self.states.values(), key=number_on_string)
-        else:
-            ordered_states = sorted(self.states.values(), key=lambda a: a.name)
+        class nameSorter(object):
+
+            def __init__(self, state):
+                self.name = state.name
+                self.c = self.name.count(',')
+                self.n = number_on_string(self.name)
+
+            def __lt__(self, other):
+                if self.c == other.c:
+                    if self.n == other.n:
+                        return self.name < other.name
+                    return self.n < other.n
+                return self.c < other.c
+
+        ordered_states = sorted(self.states.values(), key=nameSorter)
 
         for state in ordered_states:
-            name = underscore(state.name)
+            name = escape(state.name)
             columns = []
             for r in reads:
                 if r in state.transitions:
-                    if self.from_nfa:
-                        columns.append(underscore(
-                            '\\{' + myJoin(', ', state.transitions[r], lambda s: str(s.name)) + '\\}'))
+                    if len(state.transitions[r]) > 1:
+                        columns.append(
+                            '\\{' + ', '.join([escape(x.name) for x in state.transitions[r]]) + '\\}')
                     else:
-                        columns.append(underscore(
-                            state.transitions[r][0].name))
+                        columns.append(escape(state.transitions[r][0].name))
                 else:
-                    columns.append('' if not self.from_nfa else '\\{\\}')
-            if self.from_nfa:
-                name = '\\{' + name + '\\}'
+                    columns.append('\\varnothing')
             clst = ' $ & $ '.join(columns)
             result.write(ident + '$ ' + name + ' $ & $ ' +
                          clst + ' $\\\\\n' + ident + '\\hline\n')
@@ -171,7 +172,7 @@ class Automaton:
 
         return result.getvalue()
 
-    def __init__(self, states=None, initial=None, from_nfa=False):
+    def __init__(self, states=None, initial=None):
         self.states = states if states != None else {}
         if initial != None:
             self.initial = initial
@@ -180,7 +181,6 @@ class Automaton:
                 if st.initial:
                     self.initial = st
                     break
-        self.from_nfa = from_nfa
 
     def add_state(self, new_state):
         self.states[new_state.id] = new_state
@@ -224,7 +224,7 @@ class Automaton:
                     return True
             return False
 
-        new = self.__class__(from_nfa=True)
+        new = self.__class__()
 
         pset = [tuple(i) for i in p(self.states)]
         pset_to_id = {}
