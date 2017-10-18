@@ -89,7 +89,7 @@ class Automaton:
         def underscore(st):
             return re.sub(r'(?<=\w)(\d+)', r'_{\1}', st)
         print('\\begin{enumerate}')
-        stt = underscore(', '.join([str(x.name)
+        stt = underscore(', '.join([('\\{' if self.from_nfa else '') + str(x.name) + ('\\}' if self.from_nfa else '')
                                     for x in self.states.values()]))
         ident = '  '
         print(ident + '\\item $Q = \\{' + stt + '\\}$')
@@ -103,7 +103,7 @@ class Automaton:
         print(ident + '\\item $q_0$ = $' +
               underscore(self.initial.name) + ' \\in Q$')
         print(ident + '\\item $F = \{' + ', '.join(
-            [underscore(x.name) for x in self.states.values() if x.final]) + '\}$')
+            [('\\{' if self.from_nfa else '') + underscore(x.name) + ('\\}' if self.from_nfa else '') for x in self.states.values() if x.final]) + '\}$')
         print(ident + '\\item $\\delta \\colon Q \\times \\Sigma \\rightarrow Q = $')
         print(ident + '\\begin{tabular}{*{' + str(len(reads) + 1) + '}{c|}}')
         ident += '  '
@@ -116,22 +116,24 @@ class Automaton:
             n = re.sub(r'\D+', '', a.name)
             return int(n) if n != '' else 0
 
-        if re.search(r'(\d+)', self.states[0].name):
-            ordered_states = sorted(self.states.values(), key=number_on_string)
-        elif self.states[0].name.strip()[0] == '{':
+        if self.from_nfa:
             ordered_states = sorted(
                 self.states.values(), key=lambda a: a.name.count(','))
+        elif re.search(r'(\d+)', self.states[0].name):
+            ordered_states = sorted(self.states.values(), key=number_on_string)
         else:
             ordered_states = sorted(self.states.values(), key=lambda a: a.name)
         # ya no jala
         for state in ordered_states:
-            print(ident + '$ ' + underscore(state.name) + ' $ & $ ' + ' $ & $ '.join([underscore(
-                state.transitions[x].name) if x in state.transitions else ' ' for x in reads]) + ' $\\\\\n' + ident + '\\hline')
+            print(ident + '$ ' + ('\\{' if self.from_nfa else '') + underscore(state.name) + ('\\}' if self.from_nfa else '') + ' $ & $ ' +
+                  ' $ & $ '.join([underscore(state.transitions[x][0].name if not self.from_nfa else '\\{ ' +
+                                             ', '.join([k.name for k in state.transitions[x]]) + " \\}") if x in state.transitions else ' ' if not self.from_nfa else '\\{\\}' for x in reads]) +
+                  ' $\\\\\n' + ident + '\\hline')
         ident = '  '
         print(ident + '\\end{tabular}')
         print('\\end{enumerate}')
 
-    def __init__(self, states=None, initial=None):
+    def __init__(self, states=None, initial=None, from_nfa=False):
         self.states = states if states != None else {}
         if initial != None:
             self.initial = initial
@@ -140,16 +142,17 @@ class Automaton:
                 if st.initial:
                     self.initial = st
                     break
+        self.from_nfa = from_nfa
 
     def add_state(self, new_state):
-        self.states[new_state] = new_state
+        self.states[new_state.id] = new_state
         if new_state.initial:
             self.initial = new_state
 
     def add_transition(self, from_state, with_value, to_state):
         self.states[from_state].addTransition(with_value, to_state)
 
-        def dfa_transform(self):
+    def dfa_transform(self):
 
         def p(s):
             result = [[]]
@@ -175,7 +178,7 @@ class Automaton:
                     return True
             return False
 
-        new = self.__class__()
+        new = self.__class__(from_nfa=True)
 
         pset = [tuple(i) for i in p(self.states)]
         pset_to_id = {}
