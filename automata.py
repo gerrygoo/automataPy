@@ -78,8 +78,8 @@ class Automaton:
         except OSError:
             print("The file: '{}' couln't be opened or created".format(filename))
 
-    def __init__(self, states={}, initial=None):
-        self.states = states
+    def __init__(self, states=None, initial=None):
+        self.states = states if states != None else {}
         self.initial = initial
 
     def add_state(self, new_state):
@@ -95,6 +95,18 @@ class Automaton:
                 result.extend([x + [elem] for x in result])
             return result
 
+
+        new = self.__class__()
+
+        pset = sorted(p(self.states), key = lambda x : len(x))
+
+        for psetel in pset[1:]:
+            new_state = State()
+
+
+
+
+'''
         deterministic = {
             'Q': p(self.Q),
             'sigma': self.sigma,
@@ -130,3 +142,5 @@ class Automaton:
 
         deterministic['F'] = F
         return deterministic
+'''
+
