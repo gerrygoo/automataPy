@@ -32,7 +32,7 @@ class State:
         return res
 
     def transitionList(self):
-        return [{'from': self.id, 'to': self.transitions[transition].id, 'read': transition} for transition in self.transitions]
+        return [{'from': self.id, 'to': to.id, 'read': transition} for transition in self.transitions for to in self.transitions[transition]]
 
     def __hash__(self):
         return hash(self.id)
@@ -121,7 +121,7 @@ class Automaton:
                 self.states.values(), key=lambda a: a.name.count(','))
         else:
             ordered_states = sorted(self.states.values(), key=lambda a: a.name)
-
+        # ya no jala
         for state in ordered_states:
             print(ident + '$ ' + underscore(state.name) + ' $ & $ ' + ' $ & $ '.join([underscore(
                 state.transitions[x].name) if x in state.transitions else ' ' for x in reads]) + ' $\\\\\n' + ident + '\\hline')
@@ -138,10 +138,6 @@ class Automaton:
                 if st.initial:
                     self.initial = st
                     break
-
-    def __init__(self, states=None, initial=None):
-        self.states = states if states != None else {}
-        self.initial = initial
 
     def add_state(self, new_state):
         self.states[new_state] = new_state
