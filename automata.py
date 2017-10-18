@@ -230,13 +230,16 @@ class Automaton:
             for original_id in psetel:
 
                 for key in self.states[original_id].transitions:
+                    key_map = {}
 
-                    if key not in new_state.transitions:
-                        new_state.transitions[key] = self.states[original_id].transitions[key]
+                    if key not in key_map:
+                        key_map[key] = [self.states[original_id].transitions[key].id]
                     else:
-                        new_state.transitions[key] += self.states[original_id].transitions[key]
+                        key_map[key] += self.states[original_id].transitions[key].id
 
-                    new_state.transitions[key] = list(
-                        set(new_state.transitions[key]))
+                    # new_state.transitions[key] = list(set(new_state.transitions[key]))
+                    key_map[key] = list(set(key_map[key]))
+                    
+                    new_state.transitions[key] = pset_to_id(tuple(key_map[key]))
 
         return new
