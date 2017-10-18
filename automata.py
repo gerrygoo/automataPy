@@ -1,6 +1,7 @@
 import xmltodict
 import re
 from collections import Set
+from io import StringIO
 
 
 class State:
@@ -86,6 +87,8 @@ class Automaton:
             print("The file: '{}' couln't be opened or created".format(filename))
 
     def toLatex(self):
+        result = StringIO()
+
         def underscore(st):
             return re.sub(r'(?<=\w)(\d+)', r'_{\1}', st)
 
@@ -94,29 +97,31 @@ class Automaton:
                 return st.join(['\\{' + val(x) + '\\}' for x in col])
             return st.join([val(x) for x in col])
 
-        print('\\begin{enumerate}')
+        result.write('\\begin{enumerate}\n')
         qst = underscore(
             myJoin(', ', self.states.values(), lambda s: str(s.name), self.from_nfa))
         ident = '  '
-        print(ident + '\\item $Q = \\{' + qst + '\\}$')
+        result.write(ident + '\\item $Q = \\{' + qst + '\\}$\n')
         reads = set()
         for st in self.states.values():
             for tt in st.transitions:
                 reads.add(tt)
         reads = sorted(list(reads))
         stt = ", ".join([str(x) for x in reads])
-        print(ident + '\\item $\\Sigma = \\{' + stt + '\\}$')
-        print(ident + '\\item $q_0$ = $' +
-              underscore(self.initial.name) + ' \\in Q$')
+        result.write(ident + '\\item $\\Sigma = \\{' + stt + '\\}$\n')
+        result.write(ident + '\\item $q_0$ = $' +
+                     underscore(self.initial.name) + ' \\in Q$\n')
         fst = myJoin(', ', [x for x in self.states.values() if x.final],
                      lambda s: underscore(s.name), self.from_nfa)
-        print(ident + '\\item $F = \\{' + fst + '\\}$')
-        print(ident + '\\item $\\delta \\colon Q \\times \\Sigma \\rightarrow Q = $')
-        print(ident + '\\begin{tabular}{*{' + str(len(reads) + 1) + '}{c|}}')
+        result.write(ident + '\\item $F = \\{' + fst + '\\}$\n')
+        result.write(
+            ident + '\\item $\\delta \\colon Q \\times \\Sigma \\rightarrow Q = $\n')
+        result.write(
+            ident + '\\begin{tabular}{*{' + str(len(reads) + 1) + '}{c|}}\n')
         ident += '  '
-        print(ident + '& $ ' +
-              ' $ & $ '.join([str(x) for x in reads]) + ' $ \\\\')
-        print(ident + '\\hline')
+        result.write(ident + '& $ ' +
+                     ' $ & $ '.join([str(x) for x in reads]) + ' $ \\\\\n')
+        result.write(ident + '\\hline\n')
         ordered_states = []
 
         def number_on_string(a):
@@ -140,17 +145,20 @@ class Automaton:
                         columns.append(underscore(
                             '\\{' + myJoin(', ', state.transitions[r], lambda s: str(s.name)) + '\\}'))
                     else:
-                        columns.append(underscore(state.transitions[r][0].name))
+                        columns.append(underscore(
+                            state.transitions[r][0].name))
                 else:
                     columns.append('' if not self.from_nfa else '\\{\\}')
             if self.from_nfa:
                 name = '\\{' + name + '\\}'
             clst = ' $ & $ '.join(columns)
-            print(ident + '$ ' + name + ' $ & $ ' +
-                  clst + ' $\\\\\n' + ident + '\\hline')
+            result.write(ident + '$ ' + name + ' $ & $ ' +
+                  clst + ' $\\\\\n' + ident + '\\hline\n')
         ident = '  '
-        print(ident + '\\end{tabular}')
-        print('\\end{enumerate}')
+        result.write(ident + '\\end{tabular}\n')
+        result.write('\\end{enumerate}')
+
+        return result.getvalue()
 
     def __init__(self, states=None, initial=None, from_nfa=False):
         self.states = states if states != None else {}
