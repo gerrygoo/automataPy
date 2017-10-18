@@ -39,11 +39,12 @@ class State:
         return self.id < other.id
 
     def __eq__(self, other):
+        if isinstance(other, int): return self.id == other
         return self.id == other.id
 
     def __str__(self):
         return "\nid: {}\nname:{}\ninitial: {}\nfinal: {}\ntransitions: [\n\t{}\n]".format(self.id, self.name, self.initial, self.final,
-                                                                                  "\n\t".join(["to: {}, read: {}".format(self.transitions[x].id, x) for x in self.transitions]))
+                                                                                  "\n\t".join(["read: {}, to: {}".format(x, ", ".join([str(k.id) for k in self.transitions[x]])) for x in self.transitions]))
 
     __repr__ = __str__
 
@@ -67,7 +68,7 @@ class Automaton:
                     id = int(transition['from'])
                     states[id].addTransition(
                         transition['read'], states[int(transition['to'])])
-                return Automaton(set(states.values()))
+                return Automaton(states = states)
         except OSError:
             print("The file: '{}' couln't be opened".format(filename))
 
@@ -98,52 +99,57 @@ class Automaton:
                 result.extend([x + [elem] for x in result])
             return result
 
+        def names(psetel):
+            to_return = []
+            for id in psetel:
+                to_return.append(self.states[id].name)
+                
+            return to_return
+        
+        def is_initial(psetel): #asumes there is only one and that it is len 1
+            if len(psetel) == 1:
+                return self.states[ psetel[0] ].initial
+            return False
+
+        def is_final(psetel):
+            for id in psetel:
+                if self.states[id].final: return True 
+            return False
+
 
         new = self.__class__()
 
-        pset = sorted(p(self.states), key = lambda x : len(x))
+        pset = [ tuple(i) for i in p(self.states) ]
+        pset_to_id = {}
+
+        c = 0
+        for psetel in pset[1:]:
+            pset_to_id[psetel] = c
+            new.add_state(
+                State(
+                    name = "{" + ','.join(names(psetel)) + "}",
+                    initial = is_initial(psetel),
+                    final= is_final(psetel),
+                    id=pset_to_id[psetel]
+                )
+            )
+            
+            c += 1
+        
 
         for psetel in pset[1:]:
-            new_state = State()
+            new_state = new.states[ pset_to_id[psetel] ]
 
+            for original_id in psetel:
 
+                for key in self.states[original_id].transitions:
+                    
+                    if key not in new_state.transitions:
+                        new_state.transitions[key] = self.states[original_id].transitions[key]
+                    else:
+                        new_state.transitions[key] += self.states[original_id].transitions[key]
+                
+                    new_state.transitions[key] = list( set( new_state.transitions[key] ) )
+                    
 
-
-'''
-        deterministic = {
-            'Q': p(self.Q),
-            'sigma': self.sigma,
-            'delta': None,
-            'q_0': self.q_0,
-            'F': None
-        }
-
-        # determinisic sigma
-        delta = {}  # from state in P(Q):list to set of states given a key
-        # delta[from_tuple][key] = to_set
-
-        for state_list in deterministic['Q'][1:]:
-            delta[tuple(state_list)] = {}
-
-            for key in self.sigma:
-                to_set = set()
-
-                for ind_state in state_list:
-                    to_set |= self.delta[ind_state][key]
-
-                delta[tuple(state_list)][key] = to_set
-
-        deterministic['delta'] = delta
-
-        # deterministic F
-        F = []
-        for state_list in deterministic['Q']:
-            for ac in self.F:
-                if ac in state_list:
-                    F.append(state_list)
-                    break
-
-        deterministic['F'] = F
-        return deterministic
-'''
-
+        return new
