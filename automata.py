@@ -196,7 +196,7 @@ class Automaton:
             for tr in state.transitions.values():
                 for to in tr:
                     counts[to] += 1
-        self.states = {x.id: x for x in counts if counts[x] > 0}
+        self.states = {x.id: x for x in counts if counts[x] > 0 or x.initial}
 
     def dfa_transform(self):
 
