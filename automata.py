@@ -16,7 +16,10 @@ class State:
         self.transitions = transitions if transitions != None else {}
 
     def addTransition(self, read, to):
-        self.transitions[read] = to
+        if read in self.transitions:
+            self.transitions[read].append(to)
+        else:
+            self.transitions[read]=[to]
 
     def to_dict(self):
         res = {'@id': self.id, '@name': self.name}
