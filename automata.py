@@ -88,11 +88,17 @@ class Automaton:
     def toLatex(self):
         def underscore(st):
             return re.sub(r'(?<=\w)(\d+)', r'_{\1}', st)
+
+        def myJoin(st, col, val, isSet=False):
+            if isSet:
+                return st.join(['\\{' + val(x) + '\\}' for x in col])
+            return st.join([val(x) for x in col])
+
         print('\\begin{enumerate}')
-        stt = underscore(', '.join([('\\{' if self.from_nfa else '') + str(x.name) + ('\\}' if self.from_nfa else '')
-                                    for x in self.states.values()]))
+        qst = underscore(
+            myJoin(', ', self.states.values(), lambda s: str(s.name), self.from_nfa))
         ident = '  '
-        print(ident + '\\item $Q = \\{' + stt + '\\}$')
+        print(ident + '\\item $Q = \\{' + qst + '\\}$')
         reads = set()
         for st in self.states.values():
             for tt in st.transitions:
@@ -102,8 +108,9 @@ class Automaton:
         print(ident + '\\item $\\Sigma = \\{' + stt + '\\}$')
         print(ident + '\\item $q_0$ = $' +
               underscore(self.initial.name) + ' \\in Q$')
-        print(ident + '\\item $F = \{' + ', '.join(
-            [('\\{' if self.from_nfa else '') + underscore(x.name) + ('\\}' if self.from_nfa else '') for x in self.states.values() if x.final]) + '\}$')
+        fst = myJoin(', ', [x for x in self.states.values() if x.final],
+                     lambda s: underscore(s.name), self.from_nfa)
+        print(ident + '\\item $F = \\{' + fst + '\\}$')
         print(ident + '\\item $\\delta \\colon Q \\times \\Sigma \\rightarrow Q = $')
         print(ident + '\\begin{tabular}{*{' + str(len(reads) + 1) + '}{c|}}')
         ident += '  '
@@ -123,12 +130,24 @@ class Automaton:
             ordered_states = sorted(self.states.values(), key=number_on_string)
         else:
             ordered_states = sorted(self.states.values(), key=lambda a: a.name)
-        # ya no jala
+
         for state in ordered_states:
-            print(ident + '$ ' + ('\\{' if self.from_nfa else '') + underscore(state.name) + ('\\}' if self.from_nfa else '') + ' $ & $ ' +
-                  ' $ & $ '.join([underscore(state.transitions[x][0].name if not self.from_nfa else '\\{ ' +
-                                             ', '.join([k.name for k in state.transitions[x]]) + " \\}") if x in state.transitions else ' ' if not self.from_nfa else '\\{\\}' for x in reads]) +
-                  ' $\\\\\n' + ident + '\\hline')
+            name = underscore(state.name)
+            columns = []
+            for r in reads:
+                if r in state.transitions:
+                    if self.from_nfa:
+                        columns.append(underscore(
+                            '\\{' + myJoin(', ', state.transitions[r], lambda s: str(s.name)) + '\\}'))
+                    else:
+                        columns.append(underscore(state.transitions[r][0].name))
+                else:
+                    columns.append('' if not self.from_nfa else '\\{\\}')
+            if self.from_nfa:
+                name = '\\{' + name + '\\}'
+            clst = ' $ & $ '.join(columns)
+            print(ident + '$ ' + name + ' $ & $ ' +
+                  clst + ' $\\\\\n' + ident + '\\hline')
         ident = '  '
         print(ident + '\\end{tabular}')
         print('\\end{enumerate}')
