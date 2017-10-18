@@ -252,7 +252,7 @@ class Automaton:
                     # new_state.transitions[key] = list(set(new_state.transitions[key]))
                     key_map[key] = list(set(key_map[key]))
 
-                    new_state.transitions[key] = new.states[pset_to_id[tuple(
-                        key_map[key])]]
+                    new_state.transitions[key] = [new.states[pset_to_id[tuple(
+                        key_map[key])]]]
 
         return new
