@@ -99,14 +99,14 @@ class Automata:
             powerQ[i] = tuple(sorted(powerQ[i]))
         
         indexes = {}
-        isUsed = {}
+        useCount = {}
         cont = 0
         for state in powerQ:
             indexes[state] = str(cont)
-            isUsed[state] = False
+            useCount[state] = 0
             cont += 1
 
-        isUsed[tuple(self.q_0)] = True
+        useCount[tuple(self.q_0)] = 1
 
         for state in powerQ:
             result.add_state(indexes[state])
@@ -122,26 +122,34 @@ class Automata:
                 for state in state_tuple:
                     result_set |= self.delta[state][with_value]
                 result_tuple = tuple(sorted(result_set))
-                isUsed[result_tuple] = True
+                if(indexes[state_tuple] != indexes[result_tuple]):
+                    useCount[result_tuple] += 1
                 result.add_transition(indexes[state_tuple],with_value,indexes[result_tuple])
         
-        for state_tuple in powerQ:
-            if(not isUsed[state_tuple]):
-                result.delete_state(indexes[state_tuple])
+        changed = True
+        while(changed):
+            changed = False
+            for state_tuple in powerQ:
+                if(useCount[state_tuple] == 0):
+                    useCount[state_tuple] -= 1
+                    changed = True
+                    for with_value in self.sigma:
+                        useCount[powerQ[int(min(result.delta[indexes[state_tuple]][with_value]))]] -= 1
+                    result.delete_state(indexes[state_tuple])
             
-        """
-        #debugging output delta
+                
+        """#debugging output delta
         print("<Delta>")
         for entry in result.delta:
             print(entry, dict(result.delta[entry]),sep=' -=- ')
-        print("</Delta>")
-        """
+        print("</Delta>")"""
+    
                 
         return result
 
 def main():
-    a = Automata.from_JFlap('test_NFA.jff')
+    a = Automata.from_JFlap('TareaProyecto.jff')
     res = a.dfa_transform()
-    res.to_JFlap('NFAout.jff')
+    res.to_JFlap('TareaNFA.jff')
     
 main()
