@@ -47,8 +47,19 @@ class State:
         return self.id == other.id
 
     def __str__(self):
-        return "\nid: {}\nname:{}\ninitial: {}\nfinal: {}\ntransitions: [\n\t{}\n]".format(self.id, self.name, self.initial, self.final,
-                                                                                           "\n\t".join(["read: {}, to: {}".format(x, ", ".join([str(k.id) for k in self.transitions[x]])) for x in self.transitions]))
+        return "\nid: {}\nname:{}\ninitial: {}\nfinal: {}\ntransitions: [\n\t{}\n]".format(
+            self.id,
+            self.name,
+            self.initial,
+            self.final,
+            "\n\t".join(
+                [
+                    "read: {}, to: {}".format(
+                        x,
+                        ", ".join([str(k.id) for k in self.transitions[x]])
+                    ) for x in self.transitions]
+            )
+        )
 
     __repr__ = __str__
 
@@ -153,7 +164,7 @@ class Automaton:
                 name = '\\{' + name + '\\}'
             clst = ' $ & $ '.join(columns)
             result.write(ident + '$ ' + name + ' $ & $ ' +
-                  clst + ' $\\\\\n' + ident + '\\hline\n')
+                         clst + ' $\\\\\n' + ident + '\\hline\n')
         ident = '  '
         result.write(ident + '\\end{tabular}\n')
         result.write('\\end{enumerate}')
@@ -233,13 +244,15 @@ class Automaton:
                     key_map = {}
 
                     if key not in key_map:
-                        key_map[key] = [self.states[original_id].transitions[key].id]
+                        key_map[key] = [
+                            i.id for i in self.states[original_id].transitions[key]]
                     else:
-                        key_map[key] += self.states[original_id].transitions[key].id
+                        key_map[key] += [i.id for i in self.states[original_id].transitions[key]]
 
                     # new_state.transitions[key] = list(set(new_state.transitions[key]))
                     key_map[key] = list(set(key_map[key]))
-                    
-                    new_state.transitions[key] = pset_to_id(tuple(key_map[key]))
+
+                    new_state.transitions[key] = new.states[pset_to_id[tuple(
+                        key_map[key])]]
 
         return new
