@@ -56,7 +56,7 @@ class State:
                 [
                     "read: {}, to: {}".format(
                         x,
-                        ", ".join([str(k.id) for k in self.transitions[x]])
+                        ", ".join([str(k.name) for k in self.transitions[x]])
                     ) for x in self.transitions]
             )
         )
@@ -190,6 +190,14 @@ class Automaton:
     def add_transition(self, from_state, with_value, to_state):
         self.states[from_state].addTransition(with_value, to_state)
 
+    def clean_states(self):
+        counts = {x: 0 for x in self.states.values()}
+        for state in self.states.values():
+            for tr in state.transitions.values():
+                for to in tr:
+                    counts[to] += 1
+        self.states = {x.id: x for x in counts if counts[x] > 0}
+
     def dfa_transform(self):
 
         def p(s):
@@ -254,5 +262,5 @@ class Automaton:
 
                     new_state.transitions[key] = [new.states[pset_to_id[tuple(
                         key_map[key])]]]
-
+        new.clean_states()
         return new
