@@ -243,24 +243,31 @@ class Automaton:
 
             c += 1
 
-        for psetel in pset[1:]:
-            new_state = new.states[pset_to_id[psetel]]
-
+        for psetel in pset[1:]: # for every state in power set 
+            new_state = new.states[ pset_to_id[psetel] ]
+            
+            addr_upper = {}     # 'add up' where original transitions would take you. just the key -> bunch of ids idc
             for original_id in psetel:
+                original_state = self.states[original_id]
 
-                for key in self.states[original_id].transitions:
-                    key_map = {}
+                for key in original_state.transitions: 
 
-                    if key not in key_map:
-                        key_map[key] = [
-                            i.id for i in self.states[original_id].transitions[key]]
+                    if key not in addr_upper:
+                       addr_upper[key] = set(original_state.transitions[key])
                     else:
-                        key_map[key] += [i.id for i in self.states[original_id].transitions[key]]
+                        addr_upper[key] |= set(original_state.transitions[key])
+            
+            # havinng computed that 'addition' proceed to figure out what its corresponding power set tuple would be
+            # and that tuple's corresponding new id is FOR EVERY TRANSITION
+            # that is, for every key
+            for key, value in zip(addr_upper.keys(), addr_upper.values()):
+                corr_id = pset_to_id[tuple(value)]
 
-                    # new_state.transitions[key] = list(set(new_state.transitions[key]))
-                    key_map[key] = list(set(key_map[key]))
+                new_state.addTransition(
+                    read = key,
+                    to = new.states[corr_id] 
+                )
 
-                    new_state.transitions[key] = [new.states[pset_to_id[tuple(
-                        key_map[key])]]]
+
         new.clean_states()
         return new
