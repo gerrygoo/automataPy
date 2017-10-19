@@ -191,12 +191,17 @@ class Automaton:
         self.states[from_state].addTransition(with_value, to_state)
 
     def clean_states(self):
-        counts = {x: 0 for x in self.states.values()}
-        for state in self.states.values():
-            for tr in state.transitions.values():
-                for to in tr:
-                    counts[to] += 1
-        self.states = {x.id: x for x in counts if counts[x] > 0 or x.initial}
+        valid_set = set()
+        self.traverse(self.initial, valid_set)
+        self.states = {x.id: x for x in valid_set}
+
+    def traverse(self, node, nodes):
+        for t in node.transitions.values():
+            for child in t:
+                if child in nodes:
+                    continue
+                nodes.add(child)
+                self.traverse(child, nodes)
 
     def dfa_transform(self):
 
