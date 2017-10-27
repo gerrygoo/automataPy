@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import xmltodict
 import re
 from collections import Set
@@ -88,6 +89,7 @@ class Automaton:
             print("The file: '{}' couln't be opened".format(filename))
 
     def toJFLAP(self, filename):
+        self.clean_states()
         jflapDict = {'structure': {'type': 'fa', 'automaton': {
             'state': [state.to_dict() for state in self.states.values()],
             'transition': [transition for state in self.states.values() for transition in state.transitionList()]}}}
@@ -248,20 +250,21 @@ class Automaton:
 
             c += 1
 
-        for psetel in pset[1:]: # for every state in power set 
-            new_state = new.states[ pset_to_id[psetel] ]
-            
-            addr_upper = {}     # 'add up' where original transitions would take you. just the key -> bunch of ids idc
+        for psetel in pset[1:]:  # for every state in power set
+            new_state = new.states[pset_to_id[psetel]]
+
+            # 'add up' where original transitions would take you. just the key -> bunch of ids idc
+            addr_upper = {}
             for original_id in psetel:
                 original_state = self.states[original_id]
 
-                for key in original_state.transitions: 
+                for key in original_state.transitions:
 
                     if key not in addr_upper:
-                       addr_upper[key] = set(original_state.transitions[key])
+                        addr_upper[key] = set(original_state.transitions[key])
                     else:
                         addr_upper[key] |= set(original_state.transitions[key])
-            
+
             # havinng computed that 'addition' proceed to figure out what its corresponding power set tuple would be
             # and that tuple's corresponding new id is FOR EVERY TRANSITION
             # that is, for every key
@@ -269,10 +272,40 @@ class Automaton:
                 corr_id = pset_to_id[tuple(value)]
 
                 new_state.addTransition(
-                    read = key,
-                    to = new.states[corr_id] 
+                    read=key,
+                    to=new.states[corr_id]
                 )
 
-
-        new.clean_states()
         return new
+
+
+if __name__ == '__main__':
+    import argparse
+    import sys
+    import os
+
+    parser = argparse.ArgumentParser(
+        description='Process jflap files to convert from NFA to DFA.')
+    parser.add_argument(
+        'infile', help='The path to a file you want to process.')
+    parser.add_argument('outfile', nargs='?', default=None,
+                        help='The path to a file you want to use as output. The default is infile_dfa')
+    parser.add_argument('--latex', '-l', action='store_true')
+    args = parser.parse_args()
+    aut = Automaton.fromJFLAP(args.infile)
+    aut = aut.dfa_transform()
+    if args.latex:
+        if not args.outfile:
+            print(aut.toLatex())
+        else:
+            with open(args.outfile, 'w') as f:
+                print(aut.toLatex(), file=f)
+    else:
+        if not args.outfile:
+            filename = args.infile.split(os.sep)[-1]
+            if filename.count('.') > 0:
+                filename = filename.split('.')[0]
+            filename += '_dfa.jff'
+            aut.toJFLAP(os.path.join(os.sep.join(args.infile.split(os.sep)[:-1]), filename))
+        else:
+            aut.toJFLAP(args.outfile)
